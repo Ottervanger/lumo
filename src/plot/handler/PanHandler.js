@@ -123,7 +123,7 @@ class PanHandler extends DOMHandler {
 		};
 
 		this.mousemove = (event) => {
-			if (down) {
+			if (down && !plot.pinchZoom) {
 				// get latest position and timestamp
 				let pos = this.mouseToViewPx(event);
 				let time = Date.now();

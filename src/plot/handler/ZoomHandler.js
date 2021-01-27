@@ -299,9 +299,8 @@ class ZoomHandler extends DOMHandler {
 
 		this.pointerdown = (event) => {
 			evCache.push(event);
-			console.log(evCache);
 			if (evCache.length === 2) {
-				plot.zoomAnimation = true;
+				plot.pinchZoom = true;
 				let dx = evCache[0].clientX - evCache[1].clientX;
 				let dy = evCache[0].clientY - evCache[1].clientY;
 				pinchDistPrev = Math.sqrt(dx*dx+dy*dy);
@@ -335,8 +334,8 @@ class ZoomHandler extends DOMHandler {
 					evCache.splice(i, 1);
 				}
 			}
-			if (evCache.length < 2 && plot.zoomAnimation === true) {
-				plot.zoomAnimation = null;
+			if (evCache.length < 2 && plot.pinchZoom === true) {
+				plot.pinchZoom = null;
 			}
 		};
 
