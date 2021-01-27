@@ -112,6 +112,7 @@ const computeTargetZoom = function(zoomDelta, currentZoom, currentAnimation, min
 };
 
 const zoom = function(plot, targetPos, zoomDelta, duration, relative = true) {
+	console.log(zoomDelta);
 	// calculate target zoom level
 	const targetZoom = computeTargetZoom(
 		zoomDelta,
@@ -294,9 +295,55 @@ class ZoomHandler extends DOMHandler {
 			event.stopPropagation();
 		};
 
+		let evCache = new Array();
+		let pinchDistPrev = -1;
+
+		this.pointerdown = (event) => {
+			evCache.push(event);
+			console.log(evCache);
+			if (evCache.length === 2) {
+				let dx = evCache[0].clientX - evCache[1].clientX;
+				let dy = evCache[0].clientY - evCache[1].clientY;
+				pinchDistPrev = Math.sqrt(dx*dx+dy*dy);
+			}
+		};
+
+		this.pointermove = (event) => {
+			// update cached pointer event
+			for (var i = 0; i < evCache.length; i++) {
+				if (event.pointerId === evCache[i].pointerId) {
+					evCache[i] = event;
+					break;
+				}
+			}
+
+			if (evCache.length === 2) {
+				let dx = evCache[0].clientX - evCache[1].clientX;
+				let dy = evCache[0].clientY - evCache[1].clientY;
+				let pinchDist = Math.sqrt(dx*dx+dy*dy);
+				const targetPos = this.mouseToPlot({
+					pageX: evCache[0].pageX + dx / 2,
+					pageY: evCache[0].pageY + dy / 2});
+				console.log(`Zooming detla = ${Math.log2(pinchDistPrev/pinchDist)}`);
+				zoom(plot, targetPos, Math.log2(pinchDistPrev/pinchDist), 0);
+				pinchDistPrev = pinchDist;
+			}
+		};
+
+		this.pointerup = (event) => {
+			for (var i = 0; i < evCache.length; i++) {
+				if (evCache[i].pointerId === event.pointerId) {
+					evCache.splice(i, 1);
+				}
+			}
+		};
+
 		const container = plot.getContainer();
 		container.addEventListener('dblclick', this.dblclick);
 		container.addEventListener('wheel', this.wheel);
+		container.addEventListener('pointerdown', this.pointerdown);
+		container.addEventListener('pointermove', this.pointermove);
+		container.addEventListener('pointerup', this.pointerup);
 		return super.enable();
 	}
 
@@ -313,6 +360,9 @@ class ZoomHandler extends DOMHandler {
 		const container = this.plot.getContainer();
 		container.removeEventListener('dblclick', this.dblclick);
 		container.removeEventListener('wheel', this.wheel);
+		container.removeEventListener('pointerdown', this.pointerdown);
+		container.removeEventListener('pointermove', this.pointermove);
+		container.removeEventListener('pointerup', this.pointerup);
 		this.dblclick = null;
 		this.wheel = null;
 		return super.disable();

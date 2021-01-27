@@ -236,9 +236,9 @@ class PanHandler extends DOMHandler {
 		};
 
 		const container = plot.getContainer();
-		container.addEventListener('mousedown', this.mousedown);
-		document.addEventListener('mousemove', this.mousemove);
-		document.addEventListener('mouseup', this.mouseup);
+		container.addEventListener('pointerdown', this.mousedown);
+		document.addEventListener('pointermove', this.mousemove);
+		document.addEventListener('pointerup', this.mouseup);
 		return super.enable();
 	}
 
@@ -253,9 +253,9 @@ class PanHandler extends DOMHandler {
 		}
 
 		const container = this.plot.getContainer();
-		container.removeEventListener('mousedown', this.mousedown);
-		document.removeEventListener('mousemove', this.mousemove);
-		document.removeEventListener('mouseup', this.mouseup);
+		container.removeEventListener('pointerdown', this.mousedown);
+		document.removeEventListener('pointermove', this.mousemove);
+		document.removeEventListener('pointerup', this.mouseup);
 		this.mousedown = null;
 		this.mousemove = null;
 		this.mouseup = null;
