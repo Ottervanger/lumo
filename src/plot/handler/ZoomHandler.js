@@ -112,7 +112,6 @@ const computeTargetZoom = function(zoomDelta, currentZoom, currentAnimation, min
 };
 
 const zoom = function(plot, targetPos, zoomDelta, duration, relative = true) {
-	console.log(zoomDelta);
 	// calculate target zoom level
 	const targetZoom = computeTargetZoom(
 		zoomDelta,
@@ -302,6 +301,7 @@ class ZoomHandler extends DOMHandler {
 			evCache.push(event);
 			console.log(evCache);
 			if (evCache.length === 2) {
+				plot.zoomAnimation = true;
 				let dx = evCache[0].clientX - evCache[1].clientX;
 				let dy = evCache[0].clientY - evCache[1].clientY;
 				pinchDistPrev = Math.sqrt(dx*dx+dy*dy);
@@ -324,8 +324,7 @@ class ZoomHandler extends DOMHandler {
 				const targetPos = this.mouseToPlot({
 					pageX: evCache[0].pageX + dx / 2,
 					pageY: evCache[0].pageY + dy / 2});
-				console.log(`Zooming detla = ${Math.log2(pinchDistPrev/pinchDist)}`);
-				zoom(plot, targetPos, Math.log2(pinchDistPrev/pinchDist), 0);
+				zoom(plot, targetPos, Math.log2(pinchDist/pinchDistPrev), 0);
 				pinchDistPrev = pinchDist;
 			}
 		};
@@ -335,6 +334,9 @@ class ZoomHandler extends DOMHandler {
 				if (evCache[i].pointerId === event.pointerId) {
 					evCache.splice(i, 1);
 				}
+			}
+			if (evCache.length < 2 && plot.zoomAnimation === true) {
+				plot.zoomAnimation = null;
 			}
 		};
 
