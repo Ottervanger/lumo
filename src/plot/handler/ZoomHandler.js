@@ -321,8 +321,8 @@ class ZoomHandler extends DOMHandler {
 				let dy = evCache[0].clientY - evCache[1].clientY;
 				let pinchDist = Math.sqrt(dx*dx+dy*dy);
 				const targetPos = this.mouseToPlot({
-					pageX: evCache[0].pageX + dx / 2,
-					pageY: evCache[0].pageY + dy / 2});
+					pageX: evCache[1].pageX + dx / 2,
+					pageY: evCache[1].pageY + dy / 2});
 				zoom(plot, targetPos, Math.log2(pinchDist/pinchDistPrev), 0);
 				pinchDistPrev = pinchDist;
 			}
