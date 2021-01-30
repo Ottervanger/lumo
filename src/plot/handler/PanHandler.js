@@ -106,7 +106,7 @@ class PanHandler extends DOMHandler {
 			return event;
 		};
 
-		this.mousedown = (event) => {
+		this.pointerdown = (event) => {
 			// ignore if right-button
 			if (!this.isLeftButton(event)) {
 				return;
@@ -121,8 +121,9 @@ class PanHandler extends DOMHandler {
 			}
 		};
 
-		this.mousemove = (event) => {
+		this.pointermove = (event) => {
 			let down = false;
+			// find and update the cached pointer event
 			for (var i = 0; i < evCache.length; i++) {
 				if (event.pointerId === evCache[i].pointerId) {
 					evCache[i] = this.updateEvent(evCache[i], event);
@@ -160,12 +161,21 @@ class PanHandler extends DOMHandler {
 			}
 		};
 
-		this.mouseup = (event) => {
+		this.pointerup = (event) => {
+			console.log(`handeling pointerup id: ${event.pointerId}`);
+			let match = false;
 			for (var i = 0; i < evCache.length; i++) {
 				if (evCache[i].pointerId === event.pointerId) {
 					evCache[i] = this.updateEvent(evCache[i], event);
 					evCache.splice(i, 1);
+					match = true;
+					break;
 				}
+			}
+
+			if (!match) {
+				// if original event is not found
+				return;
 			}
 
 			if (plot.isZooming()) {
@@ -238,10 +248,20 @@ class PanHandler extends DOMHandler {
 			});
 		};
 
+		this.pointerout = (event) => {
+			for (var i = 0; i < evCache.length; i++) {
+				if (evCache[i].pointerId === event.pointerId) {
+					console.log(`removing event id: ${event.pointerId}`);
+					evCache.splice(i, 1);
+				}
+			}
+		};
+
 		const container = plot.getContainer();
-		container.addEventListener('pointerdown', this.mousedown);
-		document.addEventListener('pointermove', this.mousemove);
-		document.addEventListener('pointerup', this.mouseup);
+		container.addEventListener('pointerdown', this.pointerdown);
+		document.addEventListener('pointermove', this.pointermove);
+		document.addEventListener('pointerup', this.pointerup);
+		// container.addEventListener('pointerout', this.pointerout);
 		return super.enable();
 	}
 
@@ -256,12 +276,14 @@ class PanHandler extends DOMHandler {
 		}
 
 		const container = this.plot.getContainer();
-		container.removeEventListener('pointerdown', this.mousedown);
-		document.removeEventListener('pointermove', this.mousemove);
-		document.removeEventListener('pointerup', this.mouseup);
-		this.mousedown = null;
-		this.mousemove = null;
-		this.mouseup = null;
+		container.removeEventListener('pointerdown', this.pointerdown);
+		document.removeEventListener('pointermove', this.pointermove);
+		document.removeEventListener('pointerup', this.pointerup);
+		container.removeEventListener('pointerout', this.pointerout);
+		this.pointerdown = null;
+		this.pointermove = null;
+		this.pointerup = null;
+		this.pointerout = null;
 		return super.disable();
 	}
 

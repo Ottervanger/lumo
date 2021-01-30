@@ -340,12 +340,21 @@ class ZoomHandler extends DOMHandler {
 			}
 		};
 
+		this.pointerout = (event) => {
+			for (var i = 0; i < evCache.length; i++) {
+				if (evCache[i].pointerId === event.pointerId) {
+					evCache.splice(i, 1);
+				}
+			}
+		};
+
 		const container = plot.getContainer();
 		container.addEventListener('dblclick', this.dblclick);
 		container.addEventListener('wheel', this.wheel);
 		container.addEventListener('pointerdown', this.pointerdown);
-		container.addEventListener('pointermove', this.pointermove);
-		container.addEventListener('pointerup', this.pointerup);
+		document.addEventListener('pointermove', this.pointermove);
+		document.addEventListener('pointerup', this.pointerup);
+		// container.addEventListener('pointerout', this.pointerout);
 		return super.enable();
 	}
 
@@ -365,8 +374,13 @@ class ZoomHandler extends DOMHandler {
 		container.removeEventListener('pointerdown', this.pointerdown);
 		container.removeEventListener('pointermove', this.pointermove);
 		container.removeEventListener('pointerup', this.pointerup);
+		container.removeEventListener('pointerout', this.pointerout);
 		this.dblclick = null;
 		this.wheel = null;
+		this.pointerdown = null;
+		this.pointermove = null;
+		this.pointerup = null;
+		this.pointerout = null;
 		return super.disable();
 	}
 
