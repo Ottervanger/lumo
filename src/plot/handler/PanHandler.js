@@ -97,70 +97,85 @@ class PanHandler extends DOMHandler {
 
 		const plot = this.plot;
 
-		let down = false;
-		let lastPos = null;
-		let lastTime = null;
-		let positions = [];
-		let times = [];
+		let evCache = [];
 
-		this.mousedown = (event) => {
+		this.updateEvent = (oldEvent, event) => {
+			event.positions = oldEvent.positions;
+			event.times = oldEvent.times;
+			event.lastPos = this.mouseToViewPx(oldEvent);
+			return event;
+		};
+
+		this.pointerdown = (event) => {
 			// ignore if right-button
 			if (!this.isLeftButton(event)) {
 				return;
 			}
-			// flag as down
-			down = true;
-			// set position and timestamp
-			lastPos = this.mouseToViewPx(event);
-			lastTime = Date.now();
+			evCache.push(event);
 			if (this.inertia) {
 				// clear existing pan animation
 				plot.panAnimation = null;
 				// reset position and time arrays
-				positions = [];
-				times = [];
+				event.positions = [];
+				event.times = [];
 			}
 		};
 
-		this.mousemove = (event) => {
+		this.pointermove = (event) => {
+			let down = false;
+			// find and update the cached pointer event
+			for (var i = 0; i < evCache.length; i++) {
+				if (event.pointerId === evCache[i].pointerId) {
+					evCache[i] = this.updateEvent(evCache[i], event);
+					down = true;
+					break;
+				}
+			}
 			if (down) {
 				// get latest position and timestamp
 				let pos = this.mouseToViewPx(event);
-				let time = Date.now();
 
-				if (positions.length === 0) {
+				if (event.positions.length === 0) {
 					// emit pan start
 					plot.emit(EventType.PAN_START, new Event(plot));
 				}
 
 				if (this.inertia) {
 					// add to position and time arrays
-					positions.push(pos);
-					times.push(time);
+					event.positions.push(pos);
+					event.times.push(event.timeStamp);
 					// prevent array from getting too big
-					if (time - times[0] > PAN_EXPIRY_MS) {
-						positions.shift();
-						times.shift();
+					if (event.timeStamp - event.times[0] > PAN_EXPIRY_MS) {
+						event.positions.shift();
+						event.times.shift();
 					}
 				}
 
 				// calculate the positional delta
 				const delta = {
-					x: lastPos.x - pos.x,
-					y: lastPos.y - pos.y
+					x: (event.lastPos.x - pos.x) / evCache.length,
+					y: (event.lastPos.y - pos.y) / evCache.length
 				};
 				// pan the plot
 				pan(plot, this.viewPxToPlot(delta));
-				// update last position and time
-				lastTime = time;
-				lastPos = pos;
 			}
 		};
 
-		this.mouseup = (event) => {
+		this.pointerup = (event) => {
+			let match = false;
+			for (var i = 0; i < evCache.length; i++) {
+				if (evCache[i].pointerId === event.pointerId) {
+					evCache[i] = this.updateEvent(evCache[i], event);
+					evCache.splice(i, 1);
+					match = true;
+					break;
+				}
+			}
 
-			// flag as up
-			down = false;
+			if (!match) {
+				// if original event is not found
+				return;
+			}
 
 			if (plot.isZooming()) {
 				// no panning while zooming
@@ -173,7 +188,7 @@ class PanHandler extends DOMHandler {
 			}
 
 			// ignore if no drag occurred
-			if (positions.length === 0) {
+			if (event.positions.length === 0) {
 				return;
 			}
 
@@ -183,16 +198,13 @@ class PanHandler extends DOMHandler {
 				return;
 			}
 
-			// get timestamp
-			const time = Date.now();
-
 			// strip any positions that are too old
-			while (time - times[0] > PAN_EXPIRY_MS) {
-				positions.shift();
-				times.shift();
+			while (event.timeStamp - event.times[0] > PAN_EXPIRY_MS) {
+				event.positions.shift();
+				event.times.shift();
 			}
 
-			if (times.length < 2) {
+			if (event.times.length < 2) {
 				// exit early if no remaining valid positions
 				plot.emit(EventType.PAN_END, new Event(plot));
 				return;
@@ -204,11 +216,11 @@ class PanHandler extends DOMHandler {
 
 			// calculate direction from earliest to latest
 			const direction = {
-				x: lastPos.x - positions[0].x,
-				y: lastPos.y - positions[0].y
+				x: event.lastPos.x - event.positions[0].x,
+				y: event.lastPos.y - event.positions[0].y
 			};
 			// calculate the time difference
-			const diff = ((lastTime - times[0]) || 1) / 1000; // ms to s
+			const diff = ((event.timeStamp - event.times[0]) || 1) / 1000; // ms to s
 			// calculate velocity
 			const velocity = {
 				x: direction.x * (easing / diff),
@@ -236,9 +248,9 @@ class PanHandler extends DOMHandler {
 		};
 
 		const container = plot.getContainer();
-		container.addEventListener('mousedown', this.mousedown);
-		document.addEventListener('mousemove', this.mousemove);
-		document.addEventListener('mouseup', this.mouseup);
+		container.addEventListener('pointerdown', this.pointerdown);
+		document.addEventListener('pointermove', this.pointermove);
+		document.addEventListener('pointerup', this.pointerup);
 		return super.enable();
 	}
 
@@ -253,12 +265,12 @@ class PanHandler extends DOMHandler {
 		}
 
 		const container = this.plot.getContainer();
-		container.removeEventListener('mousedown', this.mousedown);
-		document.removeEventListener('mousemove', this.mousemove);
-		document.removeEventListener('mouseup', this.mouseup);
-		this.mousedown = null;
-		this.mousemove = null;
-		this.mouseup = null;
+		container.removeEventListener('pointerdown', this.pointerdown);
+		document.removeEventListener('pointermove', this.pointermove);
+		document.removeEventListener('pointerup', this.pointerup);
+		this.pointerdown = null;
+		this.pointermove = null;
+		this.pointerup = null;
 		return super.disable();
 	}
 

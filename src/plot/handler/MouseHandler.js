@@ -78,9 +78,9 @@ class MouseHandler extends DOMHandler {
 		};
 
 		const container = plot.getContainer();
-		container.addEventListener('mousedown', this.mousedown);
-		container.addEventListener('mouseup', this.mouseup);
-		container.addEventListener('mousemove', this.mousemove);
+		container.addEventListener('pointerdown', this.mousedown);
+		document.addEventListener('pointerup', this.mouseup);
+		document.addEventListener('pointermove', this.mousemove);
 		container.addEventListener('mouseover', this.mouseover);
 		container.addEventListener('mouseout', this.mouseout);
 		container.addEventListener('wheel', this.wheel);
@@ -98,9 +98,9 @@ class MouseHandler extends DOMHandler {
 		}
 
 		const container = this.plot.getContainer();
-		container.removeEventListener('mousedown', this.mousedown);
-		container.removeEventListener('mouseup', this.mouseup);
-		container.removeEventListener('mousemove', this.mousemove);
+		container.removeEventListener('pointerdown', this.mousedown);
+		document.removeEventListener('pointerup', this.mouseup);
+		document.removeEventListener('pointermove', this.mousemove);
 		container.removeEventListener('mouseover', this.mouseover);
 		container.removeEventListener('mouseout', this.mouseout);
 		container.removeEventListener('wheel', this.wheel);

@@ -294,9 +294,58 @@ class ZoomHandler extends DOMHandler {
 			event.stopPropagation();
 		};
 
+		let evCache = new Array();
+		let pinchDistPrev = -1;
+
+		this.pointerdown = (event) => {
+			evCache.push(event);
+			if (evCache.length === 2) {
+				plot.pinchZoom = true;
+				let dx = evCache[0].clientX - evCache[1].clientX;
+				let dy = evCache[0].clientY - evCache[1].clientY;
+				pinchDistPrev = Math.sqrt(dx*dx+dy*dy);
+			}
+		};
+
+		this.pointermove = (event) => {
+			// update cached pointer event
+			for (var i = 0; i < evCache.length; i++) {
+				if (event.pointerId === evCache[i].pointerId) {
+					evCache[i] = event;
+					break;
+				}
+			}
+
+			if (evCache.length === 2) {
+				let dx = evCache[0].clientX - evCache[1].clientX;
+				let dy = evCache[0].clientY - evCache[1].clientY;
+				let pinchDist = Math.sqrt(dx*dx+dy*dy);
+				// let other = event.pointerId === evCache[0].pointerId ? evCache[1] : evCache[0];
+				const targetPos = this.mouseToPlot({
+					pageX: evCache[1].pageX + dx / 2,
+					pageY: evCache[1].pageY + dy / 2});
+				zoom(plot, targetPos, Math.log2(pinchDist/pinchDistPrev), 0);
+				pinchDistPrev = pinchDist;
+			}
+		};
+
+		this.pointerup = (event) => {
+			for (var i = 0; i < evCache.length; i++) {
+				if (evCache[i].pointerId === event.pointerId) {
+					evCache.splice(i, 1);
+				}
+			}
+			if (evCache.length < 2 && plot.pinchZoom === true) {
+				plot.pinchZoom = null;
+			}
+		};
+
 		const container = plot.getContainer();
 		container.addEventListener('dblclick', this.dblclick);
 		container.addEventListener('wheel', this.wheel);
+		container.addEventListener('pointerdown', this.pointerdown);
+		document.addEventListener('pointermove', this.pointermove);
+		document.addEventListener('pointerup', this.pointerup);
 		return super.enable();
 	}
 
@@ -313,8 +362,14 @@ class ZoomHandler extends DOMHandler {
 		const container = this.plot.getContainer();
 		container.removeEventListener('dblclick', this.dblclick);
 		container.removeEventListener('wheel', this.wheel);
+		container.removeEventListener('pointerdown', this.pointerdown);
+		container.removeEventListener('pointermove', this.pointermove);
+		container.removeEventListener('pointerup', this.pointerup);
 		this.dblclick = null;
 		this.wheel = null;
+		this.pointerdown = null;
+		this.pointermove = null;
+		this.pointerup = null;
 		return super.disable();
 	}
 
